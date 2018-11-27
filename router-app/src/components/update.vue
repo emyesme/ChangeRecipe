@@ -64,7 +64,7 @@
                   <b-form-group label="___">
                     <b-button variant="danger"
                               size="sm"
-                              @click="deleteIngredient(i.idIngredient)">
+                              @click='deleteIngredient(i.idIngredient)'>
                     x
                     </b-button>
                   </b-form-group>
@@ -151,6 +151,7 @@ export default {
     },
     methods:{
       infoRecipe: function(){
+        console.log(this.$route.params.idRecipe)
         axios.get(api + '/recipes/' + this.$route.params.idRecipe)
         .then( response => {
           this.idRecipe = response.data.idRecipe;
@@ -159,9 +160,11 @@ export default {
         }).catch( function (error) { console.log(error)})
       },
       infoIngredients: function(){
+        console.log(api + '/recipes/' + this.$route.params.idRecipe + '/ingredients')
         axios.get(api + '/recipes/' + this.$route.params.idRecipe + '/ingredients')
         .then( response => {
         this.ingredients = response.data;
+        response.data.sort()
         }).catch( function (error) { console.log(error)})
       },
       addIngredient: function(){
@@ -169,8 +172,8 @@ export default {
           alert("Existen campos vacios")
           return
         }
-        console.log(api+"/recipe/"+this.idRecipe)
-        axios.post(api+"/recipe/"+this.idRecipe,
+        console.log(api+"/recipe/"+this.$route.params.idRecipe)
+        axios.post(api+"/recipe/"+this.$route.params.idRecipe,
         {idRecipe: this.idRecipe, name:this.name, quantity:Number(this.quantity), unit:this.unit})
         .catch( function (error) { console.log(error)})
         this.createIngredient=false
@@ -190,14 +193,16 @@ export default {
           idRecipe:this.idRecipe,
           name:this.ingredients[i].name,
           quantity:Number(this.ingredients[i].quantity),
-          unit:this.ingredients[i].unit}).catch( function (error) { console.log(error)})
+          unit:this.ingredients[i].unit})
+          .catch( function (error) { console.log(error)})
+          console.log("actualizado ingrediente")
         }
       },
       deleteIngredient(id){
-        axios.delete(api + '/recipe/'+this.idRecipe+'/'+id)
+        console.log(api + '/recipe/'+this.$route.params.idRecipe+'/'+id)
+        axios.delete(api + '/recipe/'+this.$route.params.idRecipe+'/'+id)
         .catch( function (error) { console.log(error)})
         this.infoIngredients()
-        //no se esta actualizando
       },
     }
 }

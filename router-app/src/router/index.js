@@ -17,7 +17,7 @@ export default new Router({
       component: Recipes
     },
     {
-      path:'/:idRecipe/update',
+      path:'/update/:idRecipe',
       name: 'Update',
       component: Update
     }

@@ -2,10 +2,10 @@
   <div class="recipes">
     <b-navbar toggleable="md" type="dark" variant="secondary" fixed="top">
       <b-navbar-toggle target="nav_collapse"></b-navbar-toggle>
-      <b-navbar-brand to="/" @click="listRecipes">Recetario</b-navbar-brand>
+      <b-navbar-brand  @click="listRecipes">Recetario</b-navbar-brand>
       <b-collapse is-nav id="nav_collapse">
         <b-navbar-nav>
-          <b-nav-item @click="showCreate=true" variant="primary">Crear Receta</b-nav-item>
+          <b-nav-item @click="showAdd" variant="primary">Crear Receta</b-nav-item>
         </b-navbar-nav>
         <b-navbar-nav class="ml-auto">
           <b-nav-form>
@@ -49,17 +49,21 @@
     </b-modal>
     <!-- lista de recetas -->
     <b-container class="recipes-list">
-      <b-row class="text-center" v-for="recipe in recipes" v-bind:key="recipe.idrecipe" >
+      <b-row class="text-center" v-for="recipe in recipes" v-bind:key="recipe.idRecipe" >
         <b-col sm>
           <b-card  bg-variant="dark" text-variant="white" :title="recipe.title">
             <p class="card-text">
               {{ recipe.description }}
             </p>
             <b-button @click='showRecipe(recipe.idRecipe)' variant="secondary">Mostrar</b-button>
-            <b-button @click='deleteRecipe(recipe.idRecipe)' variant="danger">Eliminar</b-button>
+            <b-button to="/" @click='deleteRecipe(recipe.idRecipe)' variant="danger">Eliminar</b-button>
           </b-card>
         </b-col>
       </b-row>
+      <center>
+        <b-button variant="primary" @click="beforePage">Anterior</b-button>
+        <b-button variant="primary" @click="nextPage">Siguiente</b-button>
+      </center>
     </b-container>
     <!-- modal receta -->
     <b-modal v-model="showInfo" title="Receta">
@@ -74,7 +78,7 @@
           <hr>
           <p> <strong> Descripción: </strong></p>
           <p> {{ description }}</p>
-          <b-button :to="'/'+idRecipe+'/update'" variant="primary">
+          <b-button :to="'/update/'+idRecipe" variant="primary">
           Modificar
           </b-button>
         </b-form>
@@ -93,6 +97,7 @@ export default {
 
   name: 'recipes',
   data: () => ({
+    last: 0,
     showCreate: false,
     showInfo: false,
     pattern:null,
@@ -111,15 +116,22 @@ export default {
   },
   methods:{
     listRecipes: function(){
-      axios.get(api + '/recipes')
+      console.log(api + '/allRecipes/'+this.last)
+      axios.get(api + '/allRecipes/'+this.last)
       .then(response => {
       this.recipes = response.data})
       .catch( function (error) { console.log(error)})
-      this.title=""
-      this.description=""
+    },
+    nextPage: function(){
+      if (this.recipes.length != 0) { this.last = this.recipes[this.recipes.length - 1].idRecipe}
+      this.listRecipes()
+    },
+    beforePage:function(){
+      console.log(this.last = this.recipes[0].idRecipe)
+      if(this.recipes.length != 0){ this.last = this.recipes[0].idRecipe}
+      this.listRecipes()
     },
     deleteRecipe: function(id){
-      console.log(api + '/recipe/' + id)
       axios.delete(api + '/recipe/'+ id)
       .catch( function(error) { console.log(error)})
       this.listRecipes()
@@ -137,7 +149,6 @@ export default {
         this.ingredients = response.data;
       }).catch( function (error) { console.log(error)})
       this.showInfo=true
-      this.listRecipes()
     },
     addRecipe: function(){
       //create recipe
@@ -148,10 +159,13 @@ export default {
       axios.post(api + "/recipe" ,
       { title: this.title, description:this.description})
       .catch( function (error){ console.log(error)})
+      this.showCreate=false
+      this.listRecipes()
+    },
+    showAdd: function(){
       this.title=""
       this.description=""
-      this.showCreate=false
-
+      this.showCreate=true
     },
     search: function(){
       axios.get(api+'/searchRecipe/'+this.pattern)
@@ -159,7 +173,6 @@ export default {
         this.recipes = response.data;
       }).catch( function(error){ console.log(error)})
       this.pattern=""
-      console.log(this.recipes)
     }
   }
 }

@@ -1,8 +1,14 @@
 package main
 
+import(
+	"database/sql"
+)
+
+var db *sql.DB
+
 func main() {
 	//user, password, database name
-	db := getDB("postgres", "root", "pruebaReceta")
+	db = getDB("root", "26257", "recipes")
 	defer db.Close()
-	initializeRoutes(db)
+	initializeRoutes()
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -24,7 +23,7 @@ func respondErrorJSON(w http.ResponseWriter, r *http.Request, code int, message 
 	respondWithJSON(w, r, code, map[string]string{"error": message})
 }
 
-func createRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func createRecipe(w http.ResponseWriter, r *http.Request) {
 	var auxrecipe recipe
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&auxrecipe)
@@ -32,7 +31,7 @@ func createRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	err = createRecipeDB(auxrecipe, db)
+	err = createRecipeDB(auxrecipe)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -40,7 +39,7 @@ func createRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusCreated, auxrecipe)
 }
 
-func createIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func createIngredient(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var auxingredient ingredient
 	err := decoder.Decode(&auxingredient)
@@ -48,7 +47,7 @@ func createIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	err = createIngredientDB(auxingredient, db)
+	err = createIngredientDB(auxingredient)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -56,14 +55,14 @@ func createIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusCreated, auxingredient)
 }
 
-func getRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func getRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r) //retorna variables de la ruta
 	id, err := strconv.Atoi(vars["idRecipe"])
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid recipe id")
 		return
 	}
-	auxrecipe, errget := getRecipeDB(id, db)
+	auxrecipe, errget := getRecipeDB(id)
 	if errget != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, errget.Error())
 		return
@@ -71,7 +70,7 @@ func getRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, auxrecipe)
 }
 
-func getIngredients(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func getIngredients(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idRecipe, err := strconv.Atoi(vars["idRecipe"])
 	if err != nil {
@@ -86,7 +85,7 @@ func getIngredients(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	if start < 0 {
 		start = 0
 	}
-	ingredients, err := getIngredientsDB(start, count, idRecipe, db)
+	ingredients, err := getIngredientsDB(start, count, idRecipe)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -94,7 +93,7 @@ func getIngredients(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, ingredients)
 }
 
-func deleteFullRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func deleteFullRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idRecipe, err := strconv.Atoi(vars["idRecipe"])
 	if err != nil {
@@ -102,7 +101,7 @@ func deleteFullRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 
-	err = deleteFullRecipeDB(idRecipe, db)
+	err = deleteFullRecipeDB(idRecipe)
 
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
@@ -112,7 +111,7 @@ func deleteFullRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 }
 
-func deleteIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func deleteIngredient(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idIngredient, err := strconv.Atoi(vars["idIngredient"])
 	idRecipe, errRecipe := strconv.Atoi(vars["idRecipe"])
@@ -121,7 +120,7 @@ func deleteIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid ids")
 		return
 	}
-	err = deleteIngredientDB(idIngredient, idRecipe, db)
+	err = deleteIngredientDB(idIngredient, idRecipe)
 
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
@@ -131,7 +130,7 @@ func deleteIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 
 }
 
-func updateRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func updateRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idRecipe, err := strconv.Atoi(vars["idRecipe"])
 	if err != nil {
@@ -146,7 +145,7 @@ func updateRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 	auxrecipe.IDRecipe = idRecipe
-	err = updateRecipeDB(auxrecipe, db)
+	err = updateRecipeDB(auxrecipe)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -154,7 +153,7 @@ func updateRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, auxrecipe)
 }
 
-func updateIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func updateIngredient(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idIngredient, err := strconv.Atoi(vars["idIngredient"])
 	if err != nil {
@@ -169,7 +168,7 @@ func updateIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 	auxingredient.IDIngredient = idIngredient
-	err = updateIngredientDB(auxingredient, db)
+	err = updateIngredientDB(auxingredient)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -177,16 +176,18 @@ func updateIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, auxingredient)
 }
 
-func getRecipes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
-	count, _ := strconv.Atoi(r.FormValue("count"))
-	start, _ := strconv.Atoi(r.FormValue("start"))
-	if count < 1 || count > 100 {
-		count = 100
+func getRecipes(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("bueno si envio")
+	vars := mux.Vars(r)
+	page, err := strconv.Atoi(vars["page"])
+	if page < 0{ 
+		page = 0
 	}
-	if start < 0 {
-		start = 0
+	if (err != nil){
+		respondErrorJSON(w,r,http.StatusBadRequest, err.Error())
+		return 
 	}
-	recipes, err := getRecipesDB(start, count, db)
+	recipes, err := getRecipesDB(page)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -194,14 +195,14 @@ func getRecipes(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, recipes)
 }
 
-func getIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func getIngredient(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["idIngredient"])
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid ingredient id")
 		return
 	}
-	auxIngredient, errget := getIngredientDB(id, db)
+	auxIngredient, errget := getIngredientDB(id)
 	if errget != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, errget.Error())
 		return
@@ -209,10 +210,10 @@ func getIngredient(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 	respondWithJSON(w, r, http.StatusOK, auxIngredient)
 }
 
-func searchRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB){
+func searchRecipe(w http.ResponseWriter, r *http.Request){
 	vars := mux.Vars(r)
 	pattern := vars["pattern"]
-	answersRecipes, err := searchRecipeDB(pattern,db)
+	answersRecipes, err := searchRecipeDB(pattern)
 	if err != nil{
 		respondErrorJSON(w,r,http.StatusInternalServerError, "invalid pattern")
 		return
@@ -220,24 +221,25 @@ func searchRecipe(w http.ResponseWriter, r *http.Request, db *sql.DB){
 	respondWithJSON(w,r,http.StatusOK, answersRecipes)
 }
 
-func initializeRoutes(db *sql.DB) {
+func initializeRoutes() {
 
 	router := mux.NewRouter()
 	headers := handlers.AllowedHeaders([]string{"X-Request-With", "Content-Type", "Authorization"})
 	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	origins := handlers.AllowedOrigins([]string{"*"})
 
-	router.HandleFunc("/api/recipe", func(w http.ResponseWriter, r *http.Request) { createRecipe(w, r, db) }).Methods("POST")
-	router.HandleFunc("/api/recipe/{idRecipe}", func(w http.ResponseWriter, r *http.Request) { createIngredient(w, r, db) }).Methods("POST")
-	router.HandleFunc("/api/recipes/{idRecipe}", func(w http.ResponseWriter, r *http.Request) { getRecipe(w, r, db) }).Methods("GET")
-	router.HandleFunc("/api/searchRecipe/{pattern}", func(w http.ResponseWriter, r *http.Request) { searchRecipe(w, r, db) }).Methods("GET")
-	router.HandleFunc("/api/recipes/{idRecipe}/ingredients", func(w http.ResponseWriter, r *http.Request) { getIngredients(w, r, db) }).Methods("GET")
-	router.HandleFunc("/api/recipes/{idRecipe}/{idIngredient}", func(w http.ResponseWriter, r *http.Request) { getIngredient(w, r, db) }).Methods("GET")
-	router.HandleFunc("/api/recipes", func(w http.ResponseWriter, r *http.Request) { getRecipes(w, r, db) }).Methods("GET")
-	router.HandleFunc("/api/recipe/{idRecipe}", func(w http.ResponseWriter, r *http.Request) { deleteFullRecipe(w, r, db) }).Methods("DELETE")
-	router.HandleFunc("/api/recipe/{idRecipe}/{idIngredient}", func(w http.ResponseWriter, r *http.Request) { deleteIngredient(w, r, db) }).Methods("DELETE")
-	router.HandleFunc("/api/recipe/{idRecipe}", func(w http.ResponseWriter, r *http.Request) { updateRecipe(w, r, db) }).Methods("PUT")
-	router.HandleFunc("/api/recipe/{idRecipe}/{idIngredient}", func(w http.ResponseWriter, r *http.Request) { updateIngredient(w, r, db) }).Methods("PUT")
+	router.HandleFunc("/api/recipe", createRecipe).Methods("POST")
+	router.HandleFunc("/api/allRecipes/{page}", getRecipes).Methods("GET")
+	router.HandleFunc("/api/recipes/{idRecipe}", getRecipe).Methods("GET")
+	router.HandleFunc("/api/searchRecipe/{pattern}", searchRecipe).Methods("GET")
+	router.HandleFunc("/api/recipe/{idRecipe}", deleteFullRecipe).Methods("DELETE")	
+	router.HandleFunc("/api/recipe/{idRecipe}", updateRecipe).Methods("PUT")
+
+	router.HandleFunc("/api/recipe/{idRecipe}", createIngredient).Methods("POST")
+	router.HandleFunc("/api/recipes/{idRecipe}/ingredients", getIngredients).Methods("GET")
+	router.HandleFunc("/api/recipes/{idRecipe}/{idIngredient}", getIngredient).Methods("GET")
+	router.HandleFunc("/api/recipe/{idRecipe}/{idIngredient}", deleteIngredient).Methods("DELETE")
+	router.HandleFunc("/api/recipe/{idRecipe}/{idIngredient}", updateIngredient).Methods("PUT")
 
 	fmt.Println("Starting...8083")
 	log.Fatal(http.ListenAndServe(":8083", handlers.CORS(headers, methods, origins)(router)))

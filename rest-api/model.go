@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 )
 
@@ -12,14 +11,14 @@ type recipe struct {
 }
 
 type ingredient struct {
-	IDIngredient int     `json:"idIngredient"`
+	IDIngredient int     `json:"idIngredient,string"`
 	IDRecipe     int     `json:"idRecipe,string"`
 	Name         string  `json:"name"`
 	Quantity     float32 `json:"quantity"`
 	Unit         string  `json:"unit"`
 }
 
-func createIngredientDB(i ingredient, db *sql.DB) error {
+func createIngredientDB(i ingredient) error {
 	instruction := "INSERT INTO ingredients (IDRecipe,Name,Quantity,Unit) values($1,$2,$3,$4)"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -33,7 +32,7 @@ func createIngredientDB(i ingredient, db *sql.DB) error {
 	return nil
 }
 
-func createRecipeDB(r recipe, db *sql.DB) error {
+func createRecipeDB(r recipe) error {
 	instruction := "INSERT INTO recipe (Title,Description) values($1,$2)"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -54,7 +53,7 @@ func createRecipeDB(r recipe, db *sql.DB) error {
 	return nil
 }
 
-func deleteRecipe(id int, db *sql.DB) error {
+func deleteRecipe(id int) error {
 	instruction := "DELETE FROM recipe WHERE idRecipe=$1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -75,7 +74,7 @@ func deleteRecipe(id int, db *sql.DB) error {
 	return nil
 }
 
-func deleteIngredientDB(id int, idrecipe int, db *sql.DB) error {
+func deleteIngredientDB(id int, idrecipe int) error {
 	instruction := "DELETE FROM ingredients WHERE idRecipe=$1 AND idIngredient=$2"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -96,7 +95,7 @@ func deleteIngredientDB(id int, idrecipe int, db *sql.DB) error {
 	return nil
 }
 
-func deleteIngredients(id int, db *sql.DB) error {
+func deleteIngredients(id int) error {
 	instruction := "DELETE FROM ingredients WHERE idRecipe=$1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -110,7 +109,7 @@ func deleteIngredients(id int, db *sql.DB) error {
 	return nil
 }
 
-func getRecipeDB(idRecipe int, db *sql.DB) (*recipe, error) {
+func getRecipeDB(idRecipe int) (*recipe, error) {
 	instruction := "SELECT * FROM recipe WHERE idRecipe=$1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -134,7 +133,7 @@ func getRecipeDB(idRecipe int, db *sql.DB) (*recipe, error) {
 	return &auxrecipe, nil
 }
 
-func getIngredientDB(idIngredient int, db *sql.DB) (*ingredient, error) {
+func getIngredientDB(idIngredient int) (*ingredient, error) {
 	instruction := "SELECT * FROM ingredients WHERE idIngredient=$1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -160,7 +159,7 @@ func getIngredientDB(idIngredient int, db *sql.DB) (*ingredient, error) {
 	return &auxingredient, nil
 }
 
-func getIngredientsDB(start int, count int, idRecipe int, db *sql.DB) ([]ingredient, error) {
+func getIngredientsDB(start int, count int, idRecipe int) ([]ingredient, error) {
 	instruction := "SELECT idIngredient, name, quantity, unit FROM ingredients WHERE IDRecipe=$1 LIMIT $2 offset $3"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -194,8 +193,8 @@ func getIngredientsDB(start int, count int, idRecipe int, db *sql.DB) ([]ingredi
 	return ingredients, nil
 }
 
-func getRecipesDB(start int, count int, db *sql.DB) ([]recipe, error) {
-	instruction := "SELECT idRecipe,title,description FROM recipe LIMIT $1 offset $2"
+func getRecipesDB(last int) ([]recipe, error) {
+	instruction := "SELECT idRecipe, title, description FROM recipe WHERE idRecipe > $1 LIMIT 10"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -204,7 +203,7 @@ func getRecipesDB(start int, count int, db *sql.DB) ([]recipe, error) {
 	var idRecipe int
 	var title string
 	var description string
-	rows, errq := stmt.Query(count, start)
+	rows, errq := stmt.Query(last)
 	if errq != nil {
 		return nil, err
 	}
@@ -225,7 +224,7 @@ func getRecipesDB(start int, count int, db *sql.DB) ([]recipe, error) {
 	return recipes, nil
 }
 
-func updateRecipeDB(r recipe, db *sql.DB) error {
+func updateRecipeDB(r recipe) error {
 	instruction := "UPDATE recipe SET title=$1,description=$2 WHERE idRecipe=$3"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -239,7 +238,7 @@ func updateRecipeDB(r recipe, db *sql.DB) error {
 	return nil
 }
 
-func updateIngredientDB(i ingredient, db *sql.DB) error {
+func updateIngredientDB(i ingredient) error {
 	instruction := "UPDATE ingredients SET name=$1,quantity=$2,unit=$3 WHERE idIngredient=$4"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -253,24 +252,24 @@ func updateIngredientDB(i ingredient, db *sql.DB) error {
 	return nil
 }
 
-func deleteFullRecipeDB(idRecipe int, db *sql.DB) error {
-	err := deleteIngredients(idRecipe, db)
+func deleteFullRecipeDB(idRecipe int) error {
+	err := deleteIngredients(idRecipe)
 	if err != nil {
 		return err
 	}
-	err = deleteRecipe(idRecipe, db)
+	err = deleteRecipe(idRecipe)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func searchRecipeDB(pattern string, db *sql.DB) ([]recipe, error) {
-	answerR, err := searchRTitle(pattern,db)
+func searchRecipeDB(pattern string) ([]recipe, error) {
+	answerR, err := searchRTitle(pattern)
 	if err != nil{
 		return nil, err
 	}
-	answerRDescription, errd := searchRDescription(pattern, db)
+	answerRDescription, errd := searchRDescription(pattern)
 	if errd != nil{
 		return answerR, errd
 	}
@@ -278,7 +277,7 @@ func searchRecipeDB(pattern string, db *sql.DB) ([]recipe, error) {
 	return answerR, nil
 }
 
-func searchRTitle(pattern string, db *sql.DB) ([]recipe, error){
+func searchRTitle(pattern string) ([]recipe, error){
 	instruction := "SELECT * FROM recipe WHERE title LIKE $1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
@@ -309,7 +308,7 @@ func searchRTitle(pattern string, db *sql.DB) ([]recipe, error){
 	return recipes, nil
 }
 
-func searchRDescription(pattern string, db *sql.DB) ([]recipe, error){
+func searchRDescription(pattern string) ([]recipe, error){
 	instruction := "SELECT * FROM recipe WHERE description LIKE $1"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()

@@ -4,15 +4,12 @@ import (
 	"database/sql"
 	//"fmt"
 	"log"
-
+	"fmt"
 	_ "github.com/lib/pq"
 )
 
-func getDB(user string, pass string, database string) *sql.DB {
-	//connection := fmt.Sprintf("postgres://%s:%s@127.0.0.1:5432/%s?sslmode=disable", user, pass, database)
-	connection := "postgresql://root@localhost:26257/pruebarecetas?sslmode=disable"
-
-
+func getDB(user string, port string, database string) *sql.DB {
+	connection := fmt.Sprintf("postgresql://%s@localhost:%s/%s?sslmode=disable",user,port,database)
 	db, err := sql.Open("postgres", connection)
 	if err != nil {
 		log.Fatal(err)

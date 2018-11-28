@@ -77,15 +77,7 @@ func getIngredients(w http.ResponseWriter, r *http.Request) {
 		respondErrorJSON(w, r, http.StatusBadRequest, "Invalid recipe id ")
 		return
 	}
-	count, _ := strconv.Atoi(r.FormValue("count"))
-	start, _ := strconv.Atoi(r.FormValue("start"))
-	if count < 1 || count > 10 {
-		count = 10
-	}
-	if start < 0 {
-		start = 0
-	}
-	ingredients, err := getIngredientsDB(start, count, idRecipe)
+	ingredients, err := getIngredientsDB(idRecipe)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -177,17 +169,17 @@ func updateIngredient(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRecipes(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("bueno si envio")
 	vars := mux.Vars(r)
-	page, err := strconv.Atoi(vars["page"])
-	if page < 0{ 
-		page = 0
+	id, err := strconv.Atoi(vars["id"])
+	direction := vars["direction"]
+	if id < 0{ 
+		id = 0
 	}
 	if (err != nil){
 		respondErrorJSON(w,r,http.StatusBadRequest, err.Error())
 		return 
 	}
-	recipes, err := getRecipesDB(page)
+	recipes, err := getRecipesDB(direction,id)
 	if err != nil {
 		respondErrorJSON(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -221,6 +213,15 @@ func searchRecipe(w http.ResponseWriter, r *http.Request){
 	respondWithJSON(w,r,http.StatusOK, answersRecipes)
 }
 
+func countRecipes(w http.ResponseWriter, r *http.Request){
+	total, err := countRecipesDB()
+	if err != nil{
+		respondErrorJSON(w,r,http.StatusInternalServerError,err.Error())
+		return
+	}
+	respondWithJSON(w,r,http.StatusOK, total)
+}
+
 func initializeRoutes() {
 
 	router := mux.NewRouter()
@@ -229,11 +230,12 @@ func initializeRoutes() {
 	origins := handlers.AllowedOrigins([]string{"*"})
 
 	router.HandleFunc("/api/recipe", createRecipe).Methods("POST")
-	router.HandleFunc("/api/allRecipes/{page}", getRecipes).Methods("GET")
+	router.HandleFunc("/api/allRecipes/{direction}/{id}", getRecipes).Methods("GET")
 	router.HandleFunc("/api/recipes/{idRecipe}", getRecipe).Methods("GET")
 	router.HandleFunc("/api/searchRecipe/{pattern}", searchRecipe).Methods("GET")
 	router.HandleFunc("/api/recipe/{idRecipe}", deleteFullRecipe).Methods("DELETE")	
 	router.HandleFunc("/api/recipe/{idRecipe}", updateRecipe).Methods("PUT")
+	router.HandleFunc("/api/total",countRecipes).Methods("GET")
 
 	router.HandleFunc("/api/recipe/{idRecipe}", createIngredient).Methods("POST")
 	router.HandleFunc("/api/recipes/{idRecipe}/ingredients", getIngredients).Methods("GET")

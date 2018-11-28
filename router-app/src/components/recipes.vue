@@ -2,7 +2,7 @@
   <div class="recipes">
     <b-navbar toggleable="md" type="dark" variant="secondary" fixed="top">
       <b-navbar-toggle target="nav_collapse"></b-navbar-toggle>
-      <b-navbar-brand  @click="listRecipes">Recetario</b-navbar-brand>
+      <b-navbar-brand  @click="listRecipes('next',0)">Recetario</b-navbar-brand>
       <b-collapse is-nav id="nav_collapse">
         <b-navbar-nav>
           <b-nav-item @click="showAdd" variant="primary">Crear Receta</b-nav-item>
@@ -40,11 +40,14 @@
                      :max-rows="6">
             </b-form-textarea>
           </b-form-group>
+          <b-alert :show="emptyCreate" variant="danger" dismissible>
+            Algunos elementos estan vacios.
+          </b-alert>
           <b-button @click="addRecipe" variant="primary">Crear</b-button>
         </b-form>
       </b-container>
       <div slot="modal-footer" class="w-100">
-        <b-btn size="sm" class="float-right" variant="danger" @click="showCreate=false">Cancelar</b-btn>
+        <b-btn size="sm" class="float-right" variant="danger" @click="closeCreate">Cancelar</b-btn>
       </div>
     </b-modal>
     <!-- lista de recetas -->
@@ -61,8 +64,8 @@
         </b-col>
       </b-row>
       <center>
-        <b-button variant="primary" @click="beforePage">Anterior</b-button>
-        <b-button variant="primary" @click="nextPage">Siguiente</b-button>
+        <b-pagination @input="changePage" align="center" size="md" :total-rows="total" v-model="page" :per-page="10">
+        </b-pagination>
       </center>
     </b-container>
     <!-- modal receta -->
@@ -97,7 +100,10 @@ export default {
 
   name: 'recipes',
   data: () => ({
-    last: 0,
+    total:0,
+    previouspage:1,
+    page: 1,
+    emptyCreate: false,
     showCreate: false,
     showInfo: false,
     pattern:null,
@@ -112,29 +118,45 @@ export default {
     ingredients: [],
   }),
   beforeMount(){
-    this.listRecipes()
+    this.totalRecipes()
+    this.listRecipes("next",0)
   },
   methods:{
-    listRecipes: function(){
-      console.log(api + '/allRecipes/'+this.last)
-      axios.get(api + '/allRecipes/'+this.last)
+    changePage: function(){
+      if(this.page == this.previouspage){
+        return
+      }
+      if( this.page > this.previouspage){
+        this.page = this.previouspage + 1
+        this.listRecipes("next",this.recipes[this.recipes.length-1].idRecipe)
+      }
+      else{
+        this.page = 1
+        this.listRecipes("previous",this.recipes[0].idRecipe)
+      }
+      this.previouspage = this.page
+    },
+    totalRecipes: function(){
+      axios.get(api+'/total')
+      .then( response => { this.total = response.data})
+      .catch( function(error) { console.log(error)})
+    },
+    listRecipes: function(direction,id){
+      axios.get(api + '/allRecipes/'+direction+'/'+id)
       .then(response => {
       this.recipes = response.data})
       .catch( function (error) { console.log(error)})
     },
-    nextPage: function(){
-      if (this.recipes.length != 0) { this.last = this.recipes[this.recipes.length - 1].idRecipe}
-      this.listRecipes()
-    },
-    beforePage:function(){
-      console.log(this.last = this.recipes[0].idRecipe)
-      if(this.recipes.length != 0){ this.last = this.recipes[0].idRecipe}
-      this.listRecipes()
-    },
     deleteRecipe: function(id){
       axios.delete(api + '/recipe/'+ id)
       .catch( function(error) { console.log(error)})
-      this.listRecipes()
+      for( var i = 0; i < this.recipes.length ;i++){
+        if(this.recipes[i].idRecipe == id){
+          this.recipes.splice(i,1)
+        }
+      }
+      this.previouspage = 1
+      this.page = 1
     },
     showRecipe: function(id){
       axios.get(api + '/recipes/' + id)
@@ -153,19 +175,27 @@ export default {
     addRecipe: function(){
       //create recipe
       if ( this.title == "" || this.description == ""){
-        alert("Alguno de los campos esta vacio.")
+        this.emptyCreate=true
         return
       }
       axios.post(api + "/recipe" ,
       { title: this.title, description:this.description})
       .catch( function (error){ console.log(error)})
+      this.emptyCreate=false
       this.showCreate=false
-      this.listRecipes()
+      this.totalRecipes()
+      this.listRecipes("next",0)
+      this.previouspage = 1
+      this.page = 1
     },
     showAdd: function(){
       this.title=""
       this.description=""
       this.showCreate=true
+    },
+    closeCreate: function(){
+      this.showInfo=false
+      this.emptyCreate=false
     },
     search: function(){
       axios.get(api+'/searchRecipe/'+this.pattern)

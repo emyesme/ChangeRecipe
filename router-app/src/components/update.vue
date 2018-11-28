@@ -5,10 +5,6 @@
       <b-navbar-brand to="/">Recetario</b-navbar-brand>
       <b-collapse is-nav id="nav_collapse">
         <b-navbar-nav class="ml-auto">
-          <b-nav-form>
-            <b-form-input size="sm" class="mr-sm-2" type="text" placeholder="Titulo Receta"/>
-            <b-button size="sm" class="my-2 my-sm-0" type="submit">Buscar</b-button>
-          </b-nav-form>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
@@ -81,12 +77,20 @@
                                :max-rows="6">
               </b-form-textarea>
             </b-form-group>
-            <b-button @click="updateRecipe" to="/" variant="success">Guardar</b-button>
-            <b-button to="/" variant="danger">Cancelar</b-button>
+            <b-alert :show="emptyInput" variant="danger" dismissible>Algunos elementos estan vacios</b-alert>
+            <b-button @click="updateRecipe" variant="success">Guardar</b-button>
+            <b-button to="/" variant="danger" @click="emptyInput=false">Cancelar</b-button>
           </b-form>
         </b-container>
       </b-card>
     </b-container>
+    <!--  -->
+    <b-modal ref="guardado" hide-footer>
+      <div class="d-block text-center">
+        <h3>Cambios guardados exitosamente.</h3>
+      </div>
+      <b-btn variant="primary" block @click="hide" to="/">Cerrar</b-btn>
+    </b-modal>
     <!--  -->
     <b-modal v-model="createIngredient" title="Nuevo Ingrediente">
       <b-container fluid>
@@ -118,11 +122,14 @@
                           v-model=quantity>
             </b-form-input>
           </b-form-group>
+          <b-alert :show="emptyCreate" variant="danger" dismissible>
+            Algunos elementos estan vacios.
+          </b-alert>
           <b-button @click="addIngredient" variant="primary">Crear</b-button>
         </b-form>
       </b-container>
       <div slot="modal-footer" class="w-100">
-        <b-btn size="sm" class="float-right" variant="danger" @click="createIngredient=false">Cancelar</b-btn>
+        <b-btn size="sm" class="float-right" variant="danger" @click="closeCreate">Cancelar</b-btn>
       </div>
     </b-modal>
   </div>
@@ -135,15 +142,17 @@ const api = "http://localhost:8083/api";
 export default {
     name: 'update',
     data: () => ({
-        createIngredient: false,
-        idRecipe : 0,
-        title: null,
-        description: null,
-        name: null,
-        unit: null,
-        quantity: 0,
-        idIngredient:0,
-        ingredients: [],
+      emptyInput:false,
+      emptyCreate: false,
+      createIngredient: false,
+      idRecipe : 0,
+      title: null,
+      description: null,
+      name: null,
+      unit: null,
+      quantity: 0,
+      idIngredient:0,
+      ingredients: [],
     }),
     beforeMount(){
       this.infoRecipe()
@@ -151,7 +160,6 @@ export default {
     },
     methods:{
       infoRecipe: function(){
-        console.log(this.$route.params.idRecipe)
         axios.get(api + '/recipes/' + this.$route.params.idRecipe)
         .then( response => {
           this.idRecipe = response.data.idRecipe;
@@ -160,7 +168,6 @@ export default {
         }).catch( function (error) { console.log(error)})
       },
       infoIngredients: function(){
-        console.log(api + '/recipes/' + this.$route.params.idRecipe + '/ingredients')
         axios.get(api + '/recipes/' + this.$route.params.idRecipe + '/ingredients')
         .then( response => {
         this.ingredients = response.data;
@@ -169,17 +176,24 @@ export default {
       },
       addIngredient: function(){
         if(this.name == "" || this.unit == "" || this.quantity == 0){
-          alert("Existen campos vacios")
+          this.emptyCreate=true
           return
         }
-        console.log(api+"/recipe/"+this.$route.params.idRecipe)
         axios.post(api+"/recipe/"+this.$route.params.idRecipe,
         {idRecipe: this.idRecipe, name:this.name, quantity:Number(this.quantity), unit:this.unit})
         .catch( function (error) { console.log(error)})
         this.createIngredient=false
+        this.name = ""
+        this.unit = ""
+        this.quantity = 0
+        this.emptyCreate=false
         this.infoIngredients()
       },
       updateRecipe: function(){
+        if(this.title == "" || this.description == ""){
+          this.emptyInput = true
+          return
+        }
         axios.put(api +"/recipe/"+this.idRecipe ,
         { idRecipe: this.idRecipe, title: this.title, description:this.description})
         .catch( function (error) { console.log(error)})
@@ -188,6 +202,10 @@ export default {
       },
       updateIngredient: function(){
         for(var i=0;i<this.ingredients.length;i++){
+          if(this.ingredients[i].name == "" || this.ingredients[i].unit == "" || this.ingredients[i].quantity == 0){
+            this.emptyInput=this.emptyInput || true
+            return
+          }
           axios.put(api+'/recipe/'+this.idRecipe+'/'+this.ingredients[i].idIngredient,
           { idIngredient:this.ingredients[i].idIngredient,
           idRecipe:this.idRecipe,
@@ -195,15 +213,28 @@ export default {
           quantity:Number(this.ingredients[i].quantity),
           unit:this.ingredients[i].unit})
           .catch( function (error) { console.log(error)})
-          console.log("actualizado ingrediente")
+        }
+        if(!this.emtpyInput){
+          this.$refs.guardado.show()
+          this.emptyInput=false
         }
       },
+      hide:function(){
+        this.$refs.guardado.hide()
+      },
       deleteIngredient(id){
-        console.log(api + '/recipe/'+this.$route.params.idRecipe+'/'+id)
         axios.delete(api + '/recipe/'+this.$route.params.idRecipe+'/'+id)
         .catch( function (error) { console.log(error)})
-        this.infoIngredients()
+        for( var i = 0; i < this.ingredients.length ;i++){
+          if(this.ingredients[i].idIngredient == id){
+            this.ingredients.splice(i,1)
+          }
+        }
       },
+      closeCreate: function(){
+        this.createIngredient=false
+        this.emptyCreate=false
+      }
     }
 }
 </script>

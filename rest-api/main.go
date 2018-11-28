@@ -7,7 +7,7 @@ import(
 var db *sql.DB
 
 func main() {
-	//user, password, database name
+	//user, port, database name
 	db = getDB("root", "26257", "recipes")
 	defer db.Close()
 	initializeRoutes()

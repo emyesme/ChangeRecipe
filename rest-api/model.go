@@ -19,7 +19,7 @@ type ingredient struct {
 }
 
 func createIngredientDB(i ingredient) error {
-	instruction := "INSERT INTO ingredients (IDRecipe,Name,Quantity,Unit) values($1,$2,$3,$4)"
+	instruction := "INSERT INTO ingredients (IDRecipe,Name,Quantity,Unit) values($1,$2,$3,$4);"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -33,7 +33,7 @@ func createIngredientDB(i ingredient) error {
 }
 
 func createRecipeDB(r recipe) error {
-	instruction := "INSERT INTO recipe (Title,Description) values($1,$2)"
+	instruction := "INSERT INTO recipe (Title,Description) values($1,$2);"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -54,7 +54,7 @@ func createRecipeDB(r recipe) error {
 }
 
 func deleteRecipe(id int) error {
-	instruction := "DELETE FROM recipe WHERE idRecipe=$1"
+	instruction := "DELETE FROM recipe WHERE idRecipe=$1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -75,7 +75,7 @@ func deleteRecipe(id int) error {
 }
 
 func deleteIngredientDB(id int, idrecipe int) error {
-	instruction := "DELETE FROM ingredients WHERE idRecipe=$1 AND idIngredient=$2"
+	instruction := "DELETE FROM ingredients WHERE idRecipe=$1 AND idIngredient=$2;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -96,7 +96,7 @@ func deleteIngredientDB(id int, idrecipe int) error {
 }
 
 func deleteIngredients(id int) error {
-	instruction := "DELETE FROM ingredients WHERE idRecipe=$1"
+	instruction := "DELETE FROM ingredients WHERE idRecipe=$1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -110,7 +110,7 @@ func deleteIngredients(id int) error {
 }
 
 func getRecipeDB(idRecipe int) (*recipe, error) {
-	instruction := "SELECT * FROM recipe WHERE idRecipe=$1"
+	instruction := "SELECT * FROM recipe WHERE idRecipe=$1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	var id int
@@ -134,7 +134,7 @@ func getRecipeDB(idRecipe int) (*recipe, error) {
 }
 
 func getIngredientDB(idIngredient int) (*ingredient, error) {
-	instruction := "SELECT * FROM ingredients WHERE idIngredient=$1"
+	instruction := "SELECT * FROM ingredients WHERE idIngredient=$1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -159,8 +159,8 @@ func getIngredientDB(idIngredient int) (*ingredient, error) {
 	return &auxingredient, nil
 }
 
-func getIngredientsDB(start int, count int, idRecipe int) ([]ingredient, error) {
-	instruction := "SELECT idIngredient, name, quantity, unit FROM ingredients WHERE IDRecipe=$1 LIMIT $2 offset $3"
+func getIngredientsDB(idRecipe int) ([]ingredient, error) {
+	instruction := "SELECT idIngredient, name, quantity, unit FROM ingredients WHERE IDRecipe=$1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -170,7 +170,7 @@ func getIngredientsDB(start int, count int, idRecipe int) ([]ingredient, error) 
 	var name string
 	var quantity float32
 	var unit string
-	rows, errq := stmt.Query(idRecipe, count, start)
+	rows, errq := stmt.Query(idRecipe)
 	if errq != nil {
 		return nil, err
 	}
@@ -193,8 +193,16 @@ func getIngredientsDB(start int, count int, idRecipe int) ([]ingredient, error) 
 	return ingredients, nil
 }
 
-func getRecipesDB(last int) ([]recipe, error) {
-	instruction := "SELECT idRecipe, title, description FROM recipe WHERE idRecipe > $1 LIMIT 10"
+func getRecipesDB(direction string, id int) ([]recipe, error) {
+	var instruction string
+	if (direction != "next" && direction != "previous"){
+		return nil, errors.New("error with the direction")
+	}
+	if direction == "next" {
+		instruction = "SELECT idRecipe, title, description FROM recipe WHERE idRecipe > $1 LIMIT 10;"
+	}else{
+		instruction = "SELECT idRecipe, title, description FROM recipe WHERE idRecipe < $1 LIMIT 10;"
+	}
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -203,7 +211,7 @@ func getRecipesDB(last int) ([]recipe, error) {
 	var idRecipe int
 	var title string
 	var description string
-	rows, errq := stmt.Query(last)
+	rows, errq := stmt.Query(id)
 	if errq != nil {
 		return nil, err
 	}
@@ -225,7 +233,7 @@ func getRecipesDB(last int) ([]recipe, error) {
 }
 
 func updateRecipeDB(r recipe) error {
-	instruction := "UPDATE recipe SET title=$1,description=$2 WHERE idRecipe=$3"
+	instruction := "UPDATE recipe SET title=$1,description=$2 WHERE idRecipe=$3;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -239,7 +247,7 @@ func updateRecipeDB(r recipe) error {
 }
 
 func updateIngredientDB(i ingredient) error {
-	instruction := "UPDATE ingredients SET name=$1,quantity=$2,unit=$3 WHERE idIngredient=$4"
+	instruction := "UPDATE ingredients SET name=$1,quantity=$2,unit=$3 WHERE idIngredient=$4;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil {
@@ -274,11 +282,24 @@ func searchRecipeDB(pattern string) ([]recipe, error) {
 		return answerR, errd
 	}
 	answerR = append(answerR, answerRDescription...)
+	answerR = uniqueResults(answerR)
 	return answerR, nil
 }
 
+func uniqueResults( items []recipe) []recipe{
+	keys := make(map[recipe]bool)
+	list := []recipe{}
+	for _,entry := range items {
+		if _,value := keys[entry]; !value{
+			keys[entry] = true
+			list = append(list,entry)
+		}
+	}
+	return list
+}
+
 func searchRTitle(pattern string) ([]recipe, error){
-	instruction := "SELECT * FROM recipe WHERE title LIKE $1"
+	instruction := "SELECT * FROM recipe WHERE title LIKE $1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil{
@@ -309,7 +330,7 @@ func searchRTitle(pattern string) ([]recipe, error){
 }
 
 func searchRDescription(pattern string) ([]recipe, error){
-	instruction := "SELECT * FROM recipe WHERE description LIKE $1"
+	instruction := "SELECT * FROM recipe WHERE description LIKE $1;"
 	stmt, err := db.Prepare(instruction)
 	defer stmt.Close()
 	if err != nil{
@@ -337,4 +358,19 @@ func searchRDescription(pattern string) ([]recipe, error){
 		recipes = append(recipes, auxrecipe)
 	}
 	return recipes, nil
+}
+
+func countRecipesDB() (int,error){
+	instruction := "SELECT count(*) FROM recipe;"
+	stmt, err := db.Prepare(instruction)
+	defer stmt.Close()
+	if err != nil{
+		return 0,err
+	}
+	var total int
+	err = stmt.QueryRow().Scan(&total)
+	if err != nil{
+		return 0,err
+	}
+	return total, nil
 }
